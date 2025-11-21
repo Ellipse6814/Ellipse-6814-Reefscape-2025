@@ -3,6 +3,12 @@ package frc.robot.Subsystems;
 import frc.robot.Commands.ElevatorCommand;
 import frc.robot.Constants.ElevatorConstants;
 
+import static edu.wpi.first.units.Units.Meters;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Seconds;
+import static edu.wpi.first.units.Units.Volts;
+
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -10,9 +16,15 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.units.DistanceUnit;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Velocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 @Logged
 public class ElevatorSubsystem extends SubsystemBase{
 
@@ -28,6 +40,7 @@ public class ElevatorSubsystem extends SubsystemBase{
 
         m_encoder = m_elevator.getEncoder();
 
+        configureSysid();
     }
 
     /**
@@ -43,8 +56,6 @@ public class ElevatorSubsystem extends SubsystemBase{
         {
             m_elevator.setVoltage(speed * ElevatorConstants.kMaxMotorVoltage);
         }
-        
-        // m_elevator.set(speed);
     }
 
     @Override
@@ -54,24 +65,70 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     }
 
-    public void resetEncoder() {
-
+    public void resetEncoder() 
+    {
         m_encoder.setPosition(0.05);
-
     }
 
-    public double getEncoderPosition() {
-        
+    public double getEncoderPosition() 
+    {    
         return m_encoder.getPosition() * ElevatorConstants.kElevatorEncoderRot2Meters;
     }
 
-    public double getEncoderVelocity() {
-
+    public double getEncoderVelocity() 
+    {
         return m_encoder.getVelocity() * ElevatorConstants.kElevatorEncoderRot2Meters;
     }
 
     public boolean getLimitSwitch()
     {
         return !m_limitSwitch.get();
+    }
+
+    public void setVoltage(Voltage voltage)
+    {
+        m_elevator.setVoltage(voltage);
+    }
+
+    // ======= SYSID ======= \\
+    private SysIdRoutine routine;
+
+    private Distance getLinearPosition()
+    {
+        return Meters.of(getEncoderPosition());
+    }
+
+    private LinearVelocity getLinearVelocity()
+    {
+        return MetersPerSecond.of(getEncoderVelocity());
+    }
+
+    private Voltage getAppliedVoltage()
+    {
+        return Volts.of(m_elevator.getAppliedOutput() * m_elevator.getBusVoltage());
+    }
+
+    private void configureSysid()
+    {
+        routine = new SysIdRoutine(
+            new SysIdRoutine.Config(
+                Volts.per(Second).of(0.5),
+                Volts.of(2),
+                Seconds.of(5)
+            ), 
+            new SysIdRoutine.Mechanism(
+                (voltage) -> 
+                { 
+                    setVoltage(voltage); 
+                },
+                (log) -> 
+                {
+                    log.motor("elevatormotor").
+                    voltage(getAppliedVoltage()).
+                    linearPosition(getLinearPosition()).
+                    linearVelocity(getLinearVelocity());
+                },
+            this)
+        );
     }
 }
