@@ -23,6 +23,7 @@ import edu.wpi.first.units.measure.Velocity;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 @Logged
@@ -131,4 +132,9 @@ public class ElevatorSubsystem extends SubsystemBase{
             this)
         );
     }
+
+    public Command quasiForward()   { return routine.quasistatic(SysIdRoutine.Direction.kForward); }
+    public Command quasiReverse()   { return routine.quasistatic(SysIdRoutine.Direction.kReverse); }
+    public Command dynamicForward() { return routine.dynamic(SysIdRoutine.Direction.kForward);     }
+    public Command dynamicReverse() { return routine.dynamic(SysIdRoutine.Direction.kReverse);     }
 }
